@@ -8,7 +8,6 @@ using UnityEditor;
 public class CalibrationTargetDebugger : MonoBehaviour
 {
     [Header("=== Refs ===")]
-<<<<<<< HEAD:Unity/Assets/Scripts/CalibrationTargetDebugger.cs
     public Camera center_eye_ref;
     public Camera left_eye_ref;
     public Camera right_eye_ref;
@@ -20,11 +19,6 @@ public class CalibrationTargetDebugger : MonoBehaviour
     public float time_between_targets = 5f;
     private bool _is_active = false;
 
-=======
-    public Transform head_ref;
-    public Transform gaze_target_prefab;
-
->>>>>>> b942bf51a8469f25f79c2b903261e4c140ebf7a5:Assets/Scripts/CalibrationTargetDebugger.cs
     [Header("=== Target Placement ===")]
     [Range(0f, 90f)] public float theta_degrees;
     [Range(0f, 1f)] public float phi_ratio;
@@ -37,23 +31,12 @@ public class CalibrationTargetDebugger : MonoBehaviour
     # if UNITY_EDITOR
     void OnDrawGizmos() {
         if (Application.isPlaying) return;
-<<<<<<< HEAD:Unity/Assets/Scripts/CalibrationTargetDebugger.cs
         if (center_eye_ref == null) return;
         Vector3 v = center_eye_ref.transform.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(center_eye_ref.transform.position, center_eye_ref.transform.position + v);
         Gizmos.color = Color.grey;
         Gizmos.DrawSphere(center_eye_ref.transform.position + v, 0.15f);
-=======
-        if (head_ref == null) return;
-        Vector3 v = head_ref.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(head_ref.position, head_ref.position + v);
-        Gizmos.color = Color.grey;
-        Gizmos.DrawSphere(head_ref.position + v, 0.15f);
-        //gaze_position_ref.position = head_ref.position + v;
-        //gaze_position_ref.rotation = Quaternion.LookRotation(-v);
->>>>>>> b942bf51a8469f25f79c2b903261e4c140ebf7a5:Assets/Scripts/CalibrationTargetDebugger.cs
     }
     # endif
 
@@ -71,29 +54,19 @@ public class CalibrationTargetDebugger : MonoBehaviour
     }
 
     public void CreateNewTarget() {
-<<<<<<< HEAD:Unity/Assets/Scripts/CalibrationTargetDebugger.cs
         if (center_eye_ref == null) {
-=======
-        if (head_ref == null) {
->>>>>>> b942bf51a8469f25f79c2b903261e4c140ebf7a5:Assets/Scripts/CalibrationTargetDebugger.cs
             Debug.LogError("Cannot instantiate new target if reference to the user's head is missing.");
             return;
         }
 
         // Calculate relative position
-<<<<<<< HEAD:Unity/Assets/Scripts/CalibrationTargetDebugger.cs
         Vector3 v = center_eye_ref.transform.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
 
         // Instantiate
         Transform t = Instantiate(gaze_target_prefab, center_eye_ref.transform.position + v, Quaternion.LookRotation(-v)) as Transform;
+        CalibrationTarget ct = t.GetComponent<CalibrationTarget>();
+        if (ct != null) ct.init_rotation = Quaternion.LookRotation(-v);
         t.SetParent(center_eye_ref.transform);
-=======
-        Vector3 v = head_ref.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
-
-        // Instantiate
-        Transform t = Instantiate(gaze_target_prefab, head_ref.position + v, Quaternion.LookRotation(-v)) as Transform;
-        t.SetParent(head_ref);
->>>>>>> b942bf51a8469f25f79c2b903261e4c140ebf7a5:Assets/Scripts/CalibrationTargetDebugger.cs
 
         // Add to list of instantiated targets
         targets.Add(t);
@@ -106,7 +79,6 @@ public class CalibrationTargetDebugger : MonoBehaviour
 
     void Start() {
         for(int i = 0; i < targets.Count; i++) {
-<<<<<<< HEAD:Unity/Assets/Scripts/CalibrationTargetDebugger.cs
             CalibrationTarget ct = targets[i].GetComponent<CalibrationTarget>();
             if (ct != null) ct.SetNumber(i);
         }
@@ -210,10 +182,4 @@ public class CalibrationTargetDebugger : MonoBehaviour
         // Re-enable ability to run through coroutine
         _is_active = false;
     }
-=======
-            CalibrationTarget t = targets[i].GetComponent<CalibrationTarget>();
-            if (t != null) t.SetNumber(i);
-        }
-    }
->>>>>>> b942bf51a8469f25f79c2b903261e4c140ebf7a5:Assets/Scripts/CalibrationTargetDebugger.cs
 }
