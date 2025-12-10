@@ -334,6 +334,8 @@ class Trial:
         # Terminate with self-return
         pbar.set_description("Operations complete!")
         return self
+    
+    def estimate():
 
 # ------------------------------------------------------------
 # CORE FUNCTIONS: Functions specific to this repository
