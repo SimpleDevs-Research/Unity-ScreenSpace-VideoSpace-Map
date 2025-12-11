@@ -12,17 +12,11 @@ EditorBuildSettings:
     path: Assets/Tracking/Scenes/LensCorrection.unity
     guid: b014cb46197d6af48bb6be80f432c252
   - enabled: 1
-    path: Assets/Scenes/Base.unity
+    path: Assets/Eye-To-Screen-Map/Scenes/Base.unity
     guid: 72e428f29f520af449709b324a5d4240
   - enabled: 1
-    path: Assets/Scenes/Debug.unity
+    path: Assets/Eye-To-Screen-Map/Scenes/Cube.unity
     guid: c35f66cfb94e24976b459ee665bf6896
-  - enabled: 0
-    path: Assets/Scenes/Trials/Additive1.unity
-    guid: 84add671e44075742aac80623a3060d3
-  - enabled: 0
-    path: Assets/Scenes/Trials/Additive2.unity
-    guid: ba006ef3dea61f74693e4379b22fc3b2
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 4478419d75759e44e800b81324ef7afa, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: b90efe3bab373d34fbbca430a1ceac9c, type: 2}
