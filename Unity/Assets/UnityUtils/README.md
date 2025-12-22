@@ -181,3 +181,19 @@ During runtime, if you are in the editor, you can debug how additive scenes load
 |`ToggleScene`|`string scene_name`|_null_|Rather than `LoadScene` or `UnloadScene`, you toggle the queried scene on or off.|
 |`QuerySceneLoaded`|`string scene_name`|`bool`|You can check if a scene has been additively loaded from this manager using this function.|
 |`TryGetRe`|`string query`, `out GameObject g`|`bool`|Try and get a reference saved by the `AdditiveSceneManager.cs` component. If no reference is found, returns `false`. if it finds the reference, it returns `true` and lets you access the GameObject via its `out` parameter.|
+
+## IMU
+
+Basically, mimics IMU calculations in Unity. Outputs `gyroscope` and `accelerometer` both as `Vector3` data.
+
+### Installation
+
+This is simple: just append the `IMU.cs` script to any GameObject and it'll measure your GameObject's IMU data.
+
+### Usage
+
+You can control whether the data gets updated per frame (via `Update()`) or per fixed frame (via `FixedUpdate()`). The `FixedUpdate()` operation is generally more accurate, but for frame-specific calculations you can't go wrong with `Update()`. 
+
+If you want to get IMU data, you can access `gyroscope` and `accelerometer` properties publicly.
+
+The `IMU.cs` script also integrates `CSVWriter` if you want to record the IMU data individually. If you toggle `record`, then the script will **auto-populate** the column names. All other settings in the writer can be adjusted.

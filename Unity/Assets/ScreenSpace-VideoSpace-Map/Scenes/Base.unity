@@ -1565,6 +1565,7 @@ GameObject:
   - component: {fileID: 141696965}
   - component: {fileID: 141696967}
   - component: {fileID: 141696966}
+  - component: {fileID: 141696968}
   m_Layer: 0
   m_Name: CenterEyeAnchor
   m_TagString: MainCamera
@@ -1648,6 +1649,29 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 141696964}
   m_Enabled: 1
+--- !u!114 &141696968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 141696964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7008ab24f5268254abbeed16c9ab4c4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  update_type: 1
+  record: 1
+  writer:
+    fileName: head_imu
+    dirName: sample
+    writeUnixTime: 1
+    append_zero_to_filename: 0
+    columns: []
+    filePath: 
+  gyroscope: {x: 0, y: 0, z: 0}
+  acceleration: {x: 0, y: 0, z: 0}
 --- !u!1 &147055672
 GameObject:
   m_ObjectHideFlags: 0
