@@ -45,6 +45,7 @@ def estimate_positions(trial:Trial,
     # Prepare video(s)
     cap = cv2.VideoCapture(video_filepath)  # Get a cpature window
     assert cap.isOpened(), f"Could not open video '{video_filename}'"
+    cap.set(cv2.CAP_PROP_POS_MSEC, trial.start_buffer_ms)
     if output_video:
         output_video_basename, output_video_extension = os.path.splitext(video_filename)
         fps    = cap.get(cv2.CAP_PROP_FPS)
@@ -56,7 +57,7 @@ def estimate_positions(trial:Trial,
         out = cv2.VideoWriter(output_video_filepath, fourcc, fps, (width, height))
 
     # Allow the user to select a bounding box for identifying frame counts in the video
-    bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath)
+    bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath, start_buffer_ms=trial.start_buffer_ms)
     print("ROI coordinates:", bbox_min, bbox_max)
 
     # Iterate through video frames. Open preview window if we are previewing
@@ -120,12 +121,25 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('root_dir', help="Relative directory to your trial", type=str)
     parser.add_argument('trial_filename', help="Trial filename relative to your root directory", type=str)
-    parser.add_argument('positions_filename', help="Fileame of the positions file, including extension, relative to the trial dir", type=str)
-    parser.add_argument('video_filename', help="Fileame of the video file, including extension, relative to the trial dir", type=str)
+    parser.add_argument('positions_filename', help="Filename of the positions file, including extension, relative to the trial dir", type=str)
+    parser.add_argument('video_filename', help="Filename of the video file, including extension, relative to the trial dir", type=str)
+    parser.add_argument('-sb', '--start_buffer', help="Buffer time (in seconds) from the video start where we should start processing the video", type=float, default=0.0)
+    parser.add_argument('-xc', '--x_colname', help="The column name in your positions filename corresponding to the X coordinate in screen space", type=str, default='left_screen_pos_x')
+    parser.add_argument('-yc', '--y_colname', help="The column name in your positions filename corresponding to the Y coordinate in screen space", type=str, default='left_screen_pos_y')
     parser.add_argument('-od', '--output_dirname', help="Output directory relative to root_dir", type=str, default='estimations')
     parser.add_argument('-ov', '--output_video', help="If set, will generate an output video with the transformed positions per frame", action="store_true")
     parser.add_argument('-p', '--preview', help="If set, will preview transformations live", action="store_true")
     args = parser.parse_args()
 
-    trial = Trial(root_dir=args.root_dir, json_src=args.trial_filename)
-    estimate_positions(trial, args.positions_filename, args.video_filename, output_dirname=args.output_dirname, output_video=args.output_video, preview=args.preview, verbose=True )
+    trial = Trial(root_dir=args.root_dir, json_src=args.trial_filename, start_buffer_ms=args.start_buffer * 1000)
+    estimate_positions(
+        trial, 
+        args.positions_filename, 
+        args.video_filename, 
+        x_colname=args.x_colname,
+        y_colname=args.y_colname,
+        output_dirname=args.output_dirname, 
+        output_video=args.output_video, 
+        preview=args.preview, 
+        verbose=True 
+    )

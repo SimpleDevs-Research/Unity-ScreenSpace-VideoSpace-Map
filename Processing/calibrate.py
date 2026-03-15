@@ -37,8 +37,8 @@ def calibrate_trial(trial:Trial,
         video_filepath = os.path.join(trial.root_dir, video_filename)
         targets_filepath = os.path.join(trial.root_dir, targets_filename)
         assert os.path.exists(anchor_filepath), f"Anchor image '{anchor_filepath}' does not exist."
-        assert os.path.exists(video_filepath), f"Requested video '{video_filename}' does not exist in the root directory"
-        assert os.path.exists(targets_filepath), f"Gaze Targets CSV '{targets_filename}' does not exist in the root directory"
+        assert os.path.exists(video_filepath), f"Requested video '{video_filepath}' does not exist in the root directory"
+        assert os.path.exists(targets_filepath), f"Gaze Targets CSV '{targets_filepath}' does not exist in the root directory"
 
         # set up tqdm as a progress bar
         total_steps = 6 if validate else 5
@@ -51,17 +51,18 @@ def calibrate_trial(trial:Trial,
         tdf["target_number"] = tdf["target_number"].astype(int)     # Typcast target number as int
         df = tdf.drop(columns=['unix_ms'])                  # Remove unix milliseconds from gaze targets
         target_frames = df.set_index('frame').to_dict(orient="index")
-        print(target_frames.keys())
+        #print(target_frames.keys())
         pbar.update(1)
 
         # Extract frames from the calibration video
         pbar.set_description(f"Setting up video calibration frame extraction...")
         cap = cv2.VideoCapture(video_filepath)  # Get a cpature window
         assert cap.isOpened(), f"Could not open video '{video_filename}'"
+        cap.set(cv2.CAP_PROP_POS_MSEC, trial.start_buffer_ms)
         
         fps = cap.get(cv2.CAP_PROP_FPS)
         frame_limit = int(video_time_threshold * fps)   # 45 seconds → frame index
-        bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath) # bounding box for ocr
+        bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath, start_buffer_ms=trial.start_buffer_ms) # bounding box for ocr
         frames = []                             # Initialize collection of frames
         pbar.update(1)
         
@@ -148,6 +149,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('root_dir', help="Relative directory to your trial", type=str)
     parser.add_argument('name', help="Trial name", type=str)
+    parser.add_argument('-sb', '--start_buffer', help="Buffer time (in seconds) from the video start where we should start processing the video", type=float, default=0.0)
     parser.add_argument('-vf', '--video_filename', help="Fileame of the video file, including extension, relative to the trial dir", type=str, default="calibration.mp4")
     parser.add_argument('-tf', '--targets_filename', help="Filename of the targets csv file, including extension, relative to the trial dir", type=str, default="calibration.csv")
     args = parser.parse_args()
@@ -155,6 +157,7 @@ if __name__ == '__main__':
     trial = Trial(
         root_dir=args.root_dir,
         trial_name=args.name, 
+        start_buffer_ms=args.start_buffer * 1000
     )
     calibrate_trial(trial,
                     './anchor.png',

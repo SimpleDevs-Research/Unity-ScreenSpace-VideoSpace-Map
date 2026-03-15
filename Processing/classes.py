@@ -186,13 +186,21 @@ class CFrame(Frame):
 #   Technically a generic type, expects a root directory, a trial name, and a transformer. 
 #   Can be loaded from a JSON file if needed. Can also save as a json.
 class Trial:
-    def __init__(self, root_dir:str, trial_name=None, transformer:Transformer=None, json_src:str=None):
+    def __init__(
+        self, 
+        root_dir:str, 
+        trial_name=None, 
+        transformer:Transformer=None, 
+        json_src:str=None,
+        start_buffer_ms:int=0.0
+    ):
         self.root_dir = root_dir
         if json_src is not None and os.path.exists(os.path.join(self.root_dir, json_src)):   
             self.load_json(os.path.join(self.root_dir, json_src))
         else:
             self.trial_name = trial_name if trial_name is not None else os.path.basename(os.path.normpath(root_dir))
             self.transformer = transformer
+            self.start_buffer_ms = start_buffer_ms
     
     # Loaders
     # ------------------------------------------
@@ -203,6 +211,7 @@ class Trial:
                 print(data)
                 self.trial_name = data['trial_name']
                 self.transformer = Transformer(json_src=os.path.join(self.root_dir, data['transformer'])) if 'transformer' in data and os.path.exists(os.path.join(self.root_dir, data['transformer'])) else None
+                self.start_buffer_ms = data['start_buffer_ms']
         except FileNotFoundError:
             print(f"Error: '{json_src}' not found.")
         except json.JSONDecodeError:
@@ -219,13 +228,16 @@ class Trial:
     def set_transformer(self, transformer:Transformer):
         self.transformer = transformer
         return self
+    def set_start_buffer(self, start_buffer_ms:int):
+        self.start_buffer_ms = start_buffer_ms
 
     # Savers
     # ------------------------------------------
     def save_json(self, outname:str=None, indent:int=2, save_transformmer:bool=True, verbose:bool=True):
         output = {
             'trial_name': self.trial_name,
-            'transformer': os.path.relpath(self.transformer.save_json(output_dir=self.root_dir, verbose=verbose), self.root_dir) if save_transformmer and self.transformer is not None else ""
+            'transformer': os.path.relpath(self.transformer.save_json(output_dir=self.root_dir, verbose=verbose), self.root_dir) if save_transformmer and self.transformer is not None else "",
+            'start_buffer_ms': self.start_buffer_ms,
         }
         if outname is None: outname = self.trial_name
         outpath = os.path.join(self.root_dir, f'{outname}.json')

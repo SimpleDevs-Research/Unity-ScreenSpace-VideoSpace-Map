@@ -50,11 +50,13 @@ def draw_rectangle(event, x, y, flags, param):
 # The positions marked and a CSV with the re-positioned entities.
 # ------------------------------------------------------------
 
-def frame_count_bounding_box(video_filepath:str):
+def frame_count_bounding_box(video_filepath:str, start_buffer_ms:int=0):
     global frame_for_roi, display_frame, roi, x1, y1, x2, y2
 
     # Initialize a frame capture, get the first frame
     cap = cv2.VideoCapture(video_filepath)
+    if start_buffer_ms > 0: 
+        cap.set(cv2.CAP_PROP_POS_MSEC, start_buffer_ms)
     ret, frame = cap.read()
     if not ret:
         raise RuntimeError("Failed to read first frame.")

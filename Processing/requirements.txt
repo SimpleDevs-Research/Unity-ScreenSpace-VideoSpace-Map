@@ -2,3 +2,4 @@ tqdm
 easyocr
 pandas
 matplotlib
+opencv-python
