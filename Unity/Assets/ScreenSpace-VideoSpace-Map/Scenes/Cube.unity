@@ -1107,7 +1107,7 @@ MonoBehaviour:
   left_eye_ref: {fileID: 0}
   right_eye_ref: {fileID: 0}
   writer:
-    fileName: positions
+    fileName: cube
     dirName: sample
     writeUnixTime: 1
     append_zero_to_filename: 0

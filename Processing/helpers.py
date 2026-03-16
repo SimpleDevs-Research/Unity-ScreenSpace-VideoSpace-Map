@@ -13,8 +13,11 @@ fourcc_to_ext = {
     "H264": ".mp4",    # alt H.264 tag
     "h264": ".mp4",
     "X264": ".mp4",
+    "x264": ".mp4",
     "H265": ".mp4",    # H.265/HEVC
+    "h265": ".mp4",
     "HEVC": ".mp4",
+    "hevc": ".mp4",
     
     # --- AVI container codecs ---
     "XVID": ".avi",
