@@ -19,11 +19,14 @@ public class Calibration : MonoBehaviour
     public float time_between_targets = 5f;
     private bool _is_active = false;
 
-    [Header("=== Target Placement ===")]
+    [Header("=== Target Placement - Auto-Calculation ===")]
     [Range(0f, 90f)] public float theta_degrees;
     [Range(0f, 1f)] public float phi_ratio;
     public float phi_degrees => phi_ratio * 360f;
     public float radius;
+    private float prev_theta_degrees = 0f, prev_phi_ratio = 0f;
+    [Header("=== Target Placement - Manual Placement ===")]
+    public Vector3 new_target_pos = Vector3.zero;
 
     [Header("=== Cache ===")]
     public List<Transform> targets = new List<Transform>();
@@ -32,11 +35,10 @@ public class Calibration : MonoBehaviour
     void OnDrawGizmos() {
         if (Application.isPlaying) return;
         if (center_eye_ref == null) return;
-        Vector3 v = center_eye_ref.transform.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
         Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(center_eye_ref.transform.position, center_eye_ref.transform.position + v);
+        Gizmos.DrawLine(center_eye_ref.transform.position, new_target_pos);
         Gizmos.color = Color.grey;
-        Gizmos.DrawSphere(center_eye_ref.transform.position + v, 0.15f);
+        Gizmos.DrawSphere(new_target_pos, 0.15f);
     }
     # endif
 
@@ -59,15 +61,18 @@ public class Calibration : MonoBehaviour
             return;
         }
 
-        // Calculate relative position
-        Vector3 v = center_eye_ref.transform.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
+        Vector3 dir_to_target = (new_target_pos - center_eye_ref.transform.position).normalized;
 
         // Instantiate
-        Transform t = Instantiate(gaze_target_prefab, center_eye_ref.transform.position + v, Quaternion.LookRotation(-v)) as Transform;
+        Transform t = Instantiate(
+            gaze_target_prefab, 
+            new_target_pos,
+            Quaternion.LookRotation(-dir_to_target)
+        ) as Transform;
         
         // Modify calibration target settings
         CalibrationTarget ct = t.GetComponent<CalibrationTarget>();
-        if (ct != null) ct.init_rotation = Quaternion.LookRotation(-v);
+        if (ct != null) ct.init_rotation = Quaternion.LookRotation(-dir_to_target);
 
         // Set the parent
         Transform p = (gaze_target_parent != null) 
@@ -183,5 +188,13 @@ public class Calibration : MonoBehaviour
             GameObject target = targets[i].gameObject;
             target.SetActive(!target.activeInHierarchy);
         }
+    }
+
+    private void OnValidate() {
+        if (prev_theta_degrees != theta_degrees || prev_phi_ratio != phi_ratio) {
+            new_target_pos = center_eye_ref.transform.position + center_eye_ref.transform.rotation * CalculateLocalVector(theta_degrees, phi_degrees, radius);
+        }
+        prev_theta_degrees = theta_degrees;
+        prev_phi_ratio = phi_ratio;
     }
 }

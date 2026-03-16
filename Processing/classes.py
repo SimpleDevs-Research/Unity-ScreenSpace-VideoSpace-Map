@@ -41,19 +41,25 @@ class Transformer:
     
     # Savers
     # ------------------------------------------
-    def save_json(self, output_dir:str, indent:int=2, verbose:bool=True):
-        output = {
-            'name': self.name,
-            'vr_coords':h.to_serializable(self.vr_coords),
-            'img_coords':h.to_serializable(self.img_coords),
-            'transform':h.to_serializable(self.transform)
-        }
+    def output_dict(self, include_name:bool=False):
+        """Output the transformer as a dictionary, for saving elsewhere"""
+        output = {}
+        if include_name:
+            output['name'] = self.name
+        output['vr_coords'] = h.to_serializable(self.vr_coords)
+        output['img_coords'] = h.to_serializable(self.img_coords)
+        output['transform'] = h.to_serializable(self.transform)
+        return output
+
+    def save_json(self, output_dir:str, include_name:bool=True, indent:int=2, verbose:bool=True):
+        """Save the transformer as a JSON file on its own, separate from a trial"""
+        output = self.output_dict(include_name=include_name)
         outpath = os.path.join(output_dir, self.name+".json")
         with open(outpath, "w") as outfile:
             json.dump(output, outfile, indent=indent)
         if verbose:
             print(f"\tTransformation Matrix calculated and saved in '{outpath}'")
-        return outpath
+        return outpath, output
     
     # Setters
     # ------------------------------------------
@@ -83,11 +89,14 @@ class Transformer:
     # Applications
     # ------------------------------------------
     def screen_to_frame(self, query_coords):
-        assert self.transform is not None, "Your Transformer must have the transformation matrix set first"
+        assert self.transform is not None, "Transformer must have the transformation matrix set first"
         if len(query_coords) == 2:
             query_coords = [query_coords[0], query_coords[1], 1]
         return np.dot(query_coords, self.transform)
-    
+    def screens_to_frames(self, query_coords):
+        assert self.transform is not None, "Transformer must have the transformation matrix set first"
+        new_coords = [self.screen_to_frame(q) for q in query_coords]
+        return [c[:2] for c in new_coords]
 
 
 # === Frame Class ===
@@ -182,23 +191,25 @@ class CFrame(Frame):
     
 
 
-# === Trial Class ===
+# === Calibration Class ===
 #   Technically a generic type, expects a root directory, a trial name, and a transformer. 
 #   Can be loaded from a JSON file if needed. Can also save as a json.
-class Trial:
+class Calibration:
     def __init__(
         self, 
         root_dir:str, 
-        trial_name=None, 
+        name=None, 
         transformer:Transformer=None, 
         json_src:str=None,
         start_buffer_ms:int=0.0
     ):
         self.root_dir = root_dir
+        self.transformer = transformer
+        self.start_buffer_ms = start_buffer_ms
         if json_src is not None and os.path.exists(os.path.join(self.root_dir, json_src)):   
             self.load_json(os.path.join(self.root_dir, json_src))
         else:
-            self.trial_name = trial_name if trial_name is not None else os.path.basename(os.path.normpath(root_dir))
+            self.name = name if name is not None else os.path.basename(os.path.normpath(root_dir))
             self.transformer = transformer
             self.start_buffer_ms = start_buffer_ms
     
@@ -208,10 +219,15 @@ class Trial:
         try:
             with open(json_src, 'r') as file:
                 data = json.load(file)
-                print(data)
-                self.trial_name = data['trial_name']
-                self.transformer = Transformer(json_src=os.path.join(self.root_dir, data['transformer'])) if 'transformer' in data and os.path.exists(os.path.join(self.root_dir, data['transformer'])) else None
-                self.start_buffer_ms = data['start_buffer_ms']
+                self.name = data['name']
+                if 'transformer' in data:
+                    transformer_path = os.path.join(os.path.dirname(json_src), data['transformer'])
+                    print(transformer_path)
+                    if os.path.exists(transformer_path):
+                        self.transformer = Transformer(json_src=transformer_path)
+                # self.transformer = Transformer(json_src=os.path.join(self.root_dir, data['transformer'])) if 'transformer' in data and os.path.exists(os.path.join(self.root_dir, data['transformer'])) else None
+                if 'start_buffer_ms' in data:
+                    self.start_buffer_ms = data['start_buffer_ms']
         except FileNotFoundError:
             print(f"Error: '{json_src}' not found.")
         except json.JSONDecodeError:
@@ -219,8 +235,8 @@ class Trial:
 
     # Setters
     # ------------------------------------------
-    def set_trial_name(self, trial_name):
-        self.trial_name = trial_name
+    def set_name(self, name):
+        self.name = name
         return self
     def set_video_filename(self, video_filename:str):
         self.video_filename = video_filename
@@ -233,13 +249,21 @@ class Trial:
 
     # Savers
     # ------------------------------------------
-    def save_json(self, outname:str=None, indent:int=2, save_transformmer:bool=True, verbose:bool=True):
+    def save_json(self, outname:str=None, indent:int=2, save_transformer:bool=True, verbose:bool=True):
         output = {
-            'trial_name': self.trial_name,
-            'transformer': os.path.relpath(self.transformer.save_json(output_dir=self.root_dir, verbose=verbose), self.root_dir) if save_transformmer and self.transformer is not None else "",
+            'name': self.name,
             'start_buffer_ms': self.start_buffer_ms,
         }
-        if outname is None: outname = self.trial_name
+        if self.transformer is not None:
+            # Default: save the transformer
+            if save_transformer:
+                tpath, tdict = self.transformer.save_json(output_dir=self.root_dir, verbose=verbose)
+                tpath = os.path.relpath(tpath, self.root_dir)
+                tdict.pop('name', None)
+            else:
+                tdict = self.transformer.output_dict()
+            output['transformer'] = tdict
+        if outname is None: outname = self.name
         outpath = os.path.join(self.root_dir, f'{outname}.json')
         with open(outpath, "w") as outfile: 
             json.dump(output, outfile, indent=indent)
