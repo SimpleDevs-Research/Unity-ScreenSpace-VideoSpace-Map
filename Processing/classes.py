@@ -13,22 +13,23 @@ import helpers as h
 #   The function `screen_to_frame()` is the transformation function from queried 
 #       VR screen coordinates to frame coordinates.
 class Transformer:
-    def __init__(self, name:str=None, vr_coords=None, img_coords=None, transform=None, json_src:str=None, obj:object=None):
+    def __init__(self, name:str=None, img_resolution=None, vr_coords=None, img_coords=None, transform=None, json_src:str=None, obj:object=None):
+        self.name = name
+        self.img_resolution = img_resolution
+        self.vr_coords = vr_coords
+        self.img_coords = img_coords
+        self.transform = transform
         if json_src is not None:    self.load_json(json_src)
         elif obj is not None:       self.load_obj(obj)
-        else:
-            self.name = name
-            self.vr_coords = vr_coords
-            self.img_coords = img_coords
-            self.transform = transform
-    
+
     # Loaders
     # ------------------------------------------
     def load_obj(self, obj:object):
-        self.name = obj['name'] if 'name' in obj else None
-        self.vr_coords = obj['vr_coords'] if 'vr_coords' in obj else None
-        self.img_coords = obj['img_coords'] if 'img_coords' in obj else None
-        self.transform = obj['transform'] if 'transform' in obj else None
+        if 'name' in obj:           self.name = obj['name']
+        if 'img_resolution' in obj: self.img_resolution = obj['img_resolution']
+        if 'vr_coords' in obj:      self.vr_coords = obj['vr_coords']
+        if 'img_coords' in obj:     self.img_coords = obj['img_coords']
+        if 'transform' in obj:      self.transform = obj['transform']
     def load_json(self, json_src:str):
         try: 
             with open(json_src, 'r') as file:
@@ -46,6 +47,7 @@ class Transformer:
         output = {}
         if include_name:
             output['name'] = self.name
+        output['img_resolution'] = h.to_serializable(self.img_resolution)
         output['vr_coords'] = h.to_serializable(self.vr_coords)
         output['img_coords'] = h.to_serializable(self.img_coords)
         output['transform'] = h.to_serializable(self.transform)
@@ -63,6 +65,9 @@ class Transformer:
     
     # Setters
     # ------------------------------------------
+    def set_img_resolution(self, img_resolution):
+        self.img_resolution = img_resolution
+        return self
     def set_vr_coords(self, vr_coords):
         self.vr_coords = vr_coords
         return self

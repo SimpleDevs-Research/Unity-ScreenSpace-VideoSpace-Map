@@ -70,6 +70,8 @@ def calibrate(
     cap.set(cv2.CAP_PROP_POS_MSEC, calibration.start_buffer_ms)               # Ignore S amount of milliseconds from the start    
     fps = cap.get(cv2.CAP_PROP_FPS)                                     # Get the FPS of the video.
     frame_limit = int(video_time_threshold * fps)                       # 45 seconds → frame index
+    frame_width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))               # Get resolution width
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))              # Get resolution height
     # We initialize an interface to let the user define the region of the video to read the frame count of.
     bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath, start_buffer_ms=calibration.start_buffer_ms)
     pbar.update(1)
@@ -112,7 +114,7 @@ def calibrate(
     # Template Search
     pbar.set_description(f"Template matching...")
     anchor_img = cv2.imread(anchor_filepath, cv2.IMREAD_UNCHANGED)
-    calibration.transformer = Transformer(name="transformer") # Init transformer class
+    calibration.transformer = Transformer(name="transformer", img_resolution=(frame_width, frame_height))   # Init transformer class
     for frame in frames:
         # Calculate bounding boxes and their centroids
         frame.set_bboxes(h.estimate_template_from_image(frame.frame, anchor_img, verbose=verbose))
@@ -129,7 +131,7 @@ def calibrate(
     pbar.update(1)
 
     # Save Calibration and transformer for later use
-    calibration.save_json(verbose=verbose)
+    calibration.save_json(save_transformer=False, verbose=verbose)
     #calibration.transformer.save_json(output_path=os.path.join(calibration.root_dir, 'transformer.json'), verbose=verbose)
 
     # As validation, output frames with estimated coords, if prompted
@@ -158,9 +160,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('root_dir', help="Relative directory to your calibration trial", type=str)
     parser.add_argument('name', help="Calibration name", type=str)
-    parser.add_argument('-sb', '--start_buffer', help="Buffer time (in seconds) from the video start where we should start processing the video", type=float, default=0.0)
-    parser.add_argument('-vf', '--video_filename', help="Fileame of the video file, including extension, relative to the calibration trial dir", type=str, default="calibration.mp4")
-    parser.add_argument('-tf', '--targets_filename', help="Filename of the targets csv file, including extension, relative to the calibration trial dir", type=str, default="calibration.csv")
+    parser.add_argument('-sb', '--start_buffer', help="Buffer time (in seconds) from the video start where we should start processing the video [Default = 0]", type=float, default=0.0)
+    parser.add_argument('-vf', '--video_filename', help="Fileame of the video file, including extension, relative to the calibration trial dir [Default = 'calibration.mp4']", type=str, default="calibration.mp4")
+    parser.add_argument('-tf', '--targets_filename', help="Filename of the targets csv file, including extension, relative to the calibration trial dir [Default = 'calibration.csv']", type=str, default="calibration.csv")
     args = parser.parse_args()
     calibrate(
         args.root_dir,
