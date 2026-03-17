@@ -6,7 +6,6 @@ from classes import Calibration, Transformer
 
 def rescale_transform(
     cal_filepath:str, 
-    orig_dims, 
     new_dims,
     new_filename:str,
     verbose:bool=True
@@ -14,14 +13,13 @@ def rescale_transform(
     """
     Recompute an affine transform matrix for a resized video.
     """
-
-    # Extract the dimensions per-coordinate-wise
-    orig_w, orig_h = orig_dims
-    new_w, new_h = new_dims
-
     # open the original calibration file
     with open(cal_filepath) as f:
         data = json.load(f)
+
+    # Extract the dimensions per-coordinate-wise
+    orig_w, orig_h = data['transformer']['img_resolution']
+    new_w, new_h = new_dims
 
     # Extract the img and vr coordinates from this data
     img_coords = np.array(data["transformer"]["img_coords"], dtype=float)
@@ -62,7 +60,6 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Re-scale an existing calibration `.json` to match a different resolution.")
     parser.add_argument("calibration_filepath", help="Filepath to the calibration file to be re-scaled.", type=str)
-    parser.add_argument('original_dims', help='Dimensions (in pixels) of the original video used for calibration. Requires 2 integer values.', nargs=2, type=int)
     parser.add_argument('new_dims', help='The new dimensions (in pixels) to be scaled to. Requires two integer values', nargs=2, type=int)
     parser.add_argument('name', help="The name of the new calibration session. The new calibration will be saved with this as its filename (excluding extension).", type=str)
     parser.add_argument('-v', '--verbose', help="Should we output print statements?", action="store_true")
@@ -70,7 +67,6 @@ if __name__ == "__main__":
 
     rescale_transform(
         args.calibration_filepath,
-        args.original_dims,
         args.new_dims,
         args.name,
         verbose=args.verbose

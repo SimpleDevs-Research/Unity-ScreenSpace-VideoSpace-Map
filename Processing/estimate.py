@@ -95,8 +95,10 @@ def label_video(
     fps    = cap.get(cv2.CAP_PROP_FPS)
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    codec, output_ext = h.derive_fourcc_codec(cap, verbose=verbose)
-    fourcc = cv2.VideoWriter_fourcc(*codec)
+    #codec, output_ext = h.derive_fourcc_codec(cap, verbose=verbose)
+    #fourcc = cv2.VideoWriter_fourcc(*codec)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    output_ext = '.mp4'
 
     # Prepare output video
     video_dir, video_filename = os.path.split(video_filepath)
@@ -110,6 +112,19 @@ def label_video(
     bbox_min, bbox_max = ocr.frame_count_bounding_box(video_filepath, start_buffer_ms=start_buffer_ms)
     print("ROI coordinates:", bbox_min, bbox_max)
 
+    # Helper function: write the outframe.
+    def write_frame(frame_number:int, outframe):
+        # Find all rows where the frame number matches
+        frame_positions = pdf[pdf[frame_colname]==frame_number]
+        if len(frame_positions.index) > 0:
+            # Extract the positions in vr screen space
+            xs = frame_positions[x_colname].tolist()
+            ys = frame_positions[y_colname].tolist()
+            positions = list(zip(xs, ys))
+            # we modify the outframe
+            for coords in positions: 
+                outframe.draw_marker(coords, color=[255,225,0], inplace=True)
+
     # Iterate through video frames. Open preview window if we are previewing
     fidx, success = 0, True
     if preview:     cv2.namedWindow("Position Labeling")
@@ -120,28 +135,25 @@ def label_video(
             if verbose: print("\tEnding video labeling...")
             break
         # Copy the frame if outputting
-        if preview:
-            outframe = Frame(fidx)
-            outframe.set_frame(frame.copy())
+        outframe = Frame(fidx)
+        outframe.set_frame(frame.copy())
         # Use OCR to interpret VR frame index from video frame
         vr_frame_number, is_int = h.check_frame_number(frame, bbox_min, bbox_max, return_frames=False)
-        # If we know it's an integer, strong likelihood that it's a frame. Let's process
-        if is_int:
-            # Find all rows where the frame number matches
-            frame_positions = pdf[pdf[frame_colname]==int(vr_frame_number)]
-            if len(frame_positions.index) > 0:
-                # Extract the positions in vr screen space
-                xs = frame_positions[x_colname].tolist()
-                ys = frame_positions[y_colname].tolist()
-                positions = list(zip(xs, ys))
-                # we modify the outframe
-                for coords in positions: 
-                    outframe.draw_marker(coords, color=[255,225,0], inplace=True)
-        # Write the frame
-        out.write(outframe.frame)
+        # If we know it's an integer, strong likelihood that it's a frame.
+        if is_int: write_frame(int(vr_frame_number), outframe)
+        # Safety checks
+        frame_to_write = outframe.frame
+        frame_to_write = np.asarray(frame_to_write)
+        if frame_to_write.dtype != np.uint8:
+            frame_to_write = frame_to_write.astype(np.uint8)
+        if frame_to_write.shape[:2] != (height, width):
+            frame_to_write = cv2.resize(frame_to_write, (width, height))
+        # Write to frame and preview
+        out.write(frame_to_write)
         if preview: 
-            cv2.imshow("Position Labeling", outframe.frame)
+            cv2.imshow("Position Labeling", frame_to_write)
             cv2.waitKey(1)  # 1 ms delay
+        # Update for the next frame
         fidx += 1
     # Reached the end, closing cap
     cap.release()
