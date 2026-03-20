@@ -11,9 +11,10 @@
     3. [Discussion](#2c-discussion)
 3. [Exploration #2: Observations of Recording Pipelines](#3-exploration-2-observations-of-recording-pipelines)
     1. [Recording Resolutions and Device Compatibility](#3a-recording-resolutions-and-device-compatibility)
-    2. [Rationales Behind OS-Based Differences](#3b-rationales-behind-os-based-differences)
-        1. [Rationale #1: Platform-Driven Enforcement](#3bi-rationale-1-platform-driven-enforcement)
-        2. [Rationale #2: Downsampling From a "Master" Signal](#3bii-rationale-2-downsampling-from-a-master-signal)
+    2. [Exploring Meta Quest's Render Pipeline](#3b-exploring-meta-quests-render-pipeline) 
+        1. [Render Pipelines for Eye Displays](#3bi-render-pipelines-for-eye-displays)
+        2. [Non-Invertibility of Image Transformations](#3bii-non-invertibility-of-image-transformations)
+        3. [Separate Render Pipelines]()
 
 
 ---
@@ -195,16 +196,123 @@ Rules appear to apply differently between iOS/iPad OS and Android.
 - The **Apple ecosystem** (iOS, iPadOS) appears to force a standardized video resolution of `720p`
     - Both iPhone XR and iPad recordings output to `1280` x `720` regardless of display resolution.
 
-<h4 id="3b-rationales-behind-os-based-differences">3b. Rationales Behind OS-Based Differences</h4>
-
-<h5 id="3bi-rationale-1-platform-driven-enforcement">3bi. Rationale #1: Platform-Driven Enforcement</h5>
-
 One potential reason for these differences across OS types may be **platform-driven enforcement**.
 
 - Android might be more flexible in general (more encoders, flexible permissions).
 - The Apple ecosystem may enforce stricter encoding pipelines ([ReplayKit](https://developer.apple.com/documentation/ReplayKit), [AVFoundation](https://developer.apple.com/documentation/avfoundation/)).
 
+<h4 id="3b-exploring-meta-quests-render-pipeline">3b. Exploring Meta Quest's Render Pipeline</h4>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap: 1rem;align-items: start;">
+<div><img src="../assets/checkerboard/mqp_v2.1.1034.png" style="width:100%;" /><p>Frame from a video recorded via the Meta Quest Pro's in-built Camera system. The frame resolution is <code>1920</code> x <code>1080</code></p></div>
+<div><img src="../assets/checkerboard/motorola_razr_plus_2024.png" style="width:100%;" /><p>Frame from a video recorded via a Motorola Razr+ 2024 via the Meta Horizons app. The frame resolution is <code>2640</code> x <code>1472</code>.</p></div>
+<div><img src="../assets/checkerboard/scrcpy.png" style="width:100%;" /><p>Left eye display extracted from "scrcpy" directly. Roughly matches a <code>1800</code> x <code>1920</code> resolution.</p></div>
+</div>
+
+The Meta Quest Pro has a reported per-eye resolution of `1800` x `1920`. Yet, if one were to record a VR scene or take a screenshot using Meta's in-built Camera feature, then the resulting resolution is something closer to rectilinear `1920` x `1080`. Extrapolate that further to Meta Horizons-based recording (i.e. Android, iPhone, iPad), and your resolutions differ even further while still remaining rectilinear. Finally, upon using an application like [scrcpy](https://github.com/genymobile/scrcpy), the resulting footage returns to a `1800` x `1920` with heavy barrel distortion, cropping, and rotating. These differences produce an interesting quandry: how exactly are the Meta Quest systems handling display rendering per eye, casting, and recording simultaneously? 
+
+<h5 id="3bi-render-pipelines-for-eye-displays">3bi. Render Pipelines for Eye Displays</h5>
+
+<figure style="width:50%;max-width:500px;margin-left:auto;margin-right:auto;">
+<img style="width:100%;" src="../assets/checkerboard/scrcpy_full.png" alt="A black background video with two circles showing the same contents. Each circle depicts a 9-point arrangement of red squares alongside a checkerboard background. The two circles are distorted and rotated differently." />
+<figcaption>The raw footage from "scrcpy".</figcaption>
+</figure>
+
+To explore this question, we first start with `scrcpy`'s footage capture. The raw footage actually captures two separate displays - one for each eye - and is at a full resolution of `3648` x `1920`. Each display roughly divides into `1800` x `1920`, fulfilling the technical specifications advertised by Meta. The rendered displays are distorted like this to account for corrections made by the various lenses and polarizers built into the display lenses of the Meta Qust Pro. The video below depicts the lens components and arrangements of the Meta Quest 3, a close cousin to the Meta Quest pro.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/6DnZqEMbfBc?si=erPsvjniTUPVsTtq" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Given the raw "scrcpy" footage, we can safely assume that "scrcpy" is extracting or copying frames directly from the primary render pipeline of the Meta Quest Pro from VR content to display. More specifically, it is extracting that footage _after_ the footage has been distorted, likely right before it actually gets rendered to the user's eyes. This would align with "scrcpy"'s general function to pipe the primary display of Android devices to a separate PC.
+
+While this finding is certainly interesting, a new question must be considered:  **where along the same render pipeline are the data streams for in-built recording and casting placed?**
+
+<h5 id="3bii-non-invertibility-of-image-transformations">3bii. Non-Invertibility of Image Transformations</h5>
+
+Before we continue further, we must explore the **non-invertibility** of image transformations. By "invertible", we mean that an image transformation can be reversed without information loss. For example, rotating an image alone is usually an invertible process as a rotation can be easily reversed. In practice, this might lead one to think that the "scrcpy" footage can be reverse-transformed from its distorted version into a rectilinear, original version. However, this process in practice is likely to be _non-invertible_.
+
+To showcase this example, please observe the following examples, which are processed through `src/validate_distortion_correction.py`:
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap: 1rem;align-items: start;">
+<div><img src="../assets/checkerboard/mqp_v2.1.1034.png" style="width:100%;" /><p>Original frame to transform.</p></div>
+<div><img src="../assets/checkerboard/A_distort_then_rotate.png" style="width:100%;" /><p>Barrel-distorted and rotated with auto-adjusting aspect ratio to prevent information loss.</p></div>
+<div><img src="../assets/checkerboard/A_recovered.png" style="width:100%;" /><p>Inverse-rotated, inverse-distorted, and auto-cropped to original dimensions.</p></div>
+</div>
+
+The final output of this operation shows a distinct loss of information around the edges and a few distortion artifacts still present. Furthermore, the image is offset by a few pixels. This is but a mere example of a likely scenario one may encounter in practice: that some form of information loss must be accounted for when performing image transformations. This is not to say that it is completely _impossible_ for this distortion operation to be inversible. However, given that the "scrcpy" footage is already distorted, the likelihood of the existence of a invert operation to return the image back to rectilinearity without visual artifacts is very low. A stronger assumption to therefore make is that rectilinear recordings from either casting or in-built recording occurs somewhere **prior** to any kind of distortion transformation. 
+
+<h5 id="3biii-separate-render-pipelines">3biii. Separate Render Pipelines</h5>
+
+The second natural thought is to assume that rectilinear videos and data streams are being extracted from some render buffer that exists between the simulation layer and transformation layers. This is indeed possible, though it would only work with certain assumptions in place. We will cover those assumptions in time; for now, observe the theoretical render pipeline that we've derived thus far:
+
+```
+App (Unity / Unreal / native VR)
+        ↓
+Per-eye render buffer (undistorted, rectilinear)   ← Recording & Casting
+        ↓
+Per-eye render buffer (distorted, wide FOV)
+        ↓
+VR compositor (timewarp, reprojection)
+        ↓
+System surface / display buffer         ← "scrcpy"
+        ↓
+Lens distortion (hardware/display pipeline)
+        ↓
+display to the user's eyes
+```
+
+This potential framework relies on several core assumptions:
+
+1. Only a single render pipeline is actively in use.
+2. The application being run doesm't already populate the per-eye render targets with distorted frames calculated on the application side.
+3. Per-eye render target buffers enforce an aspect ratio and/or resolution that is greater than `1920` x `1080`; this is to account for the fact that each distorted eye render is already at an `1800` x `1920` resolution; to account for information loss as a result of frame transformations, each eye render must have a resolution of at least `1920` x `1920` with cropping to reduce both the recording/casting to a smaller resolution. 
+
+A third alternative idea is that rather than rely on a single render process, the Meta Quest systems rely on multiple render pipelines, each with their specific purposes. Observe this alternative depiction of the render process:
+
+```
+[Game / XR App]
+        ↓
+   Scene graph
+        ↓
+ ┌───────────────┬────────────────────┐
+ ↓               ↓                    ↓
+VR Eye Views   Capture View       (optional variants)
+(distorted)    (rectilinear)      (1:1, 16:9, cinematic)
+
+ ↓               ↓
+Compositor      GPU buffer
+ ↓               ↓
+Display         Hardware encoder
+(scrcpy sees)    ↓
+                File (recording) / Network stream (casting)
+```
+
+
+
 <h5 id="3bii-rationale-2-downsampling-from-a-master-signal">3bii. Rationale #2: Downsampling From a "Master" Signal</h5>
 
-The Meta Quest Pro has a per-eye resolution of `1800` x `1920`. In fact, if you use an application like [scrcpy](https://github.com/genymobile/scrcpy) to capture the raw footage from the Android foundation that the Meta Quest systems are built on top of, you'll notice that the raw footage is actually projected and distorted to conform better to lens ergonomics. What the user sees in the display is the result of a projected display, in other words; there's a lot going on under the hood.
 
+
+
+The recorded footage captured directly from the in-built recording suite on the Meta Quest devices outputs at `1920` x `1080`. Unlike the footage captured from `scrcpy` - which is heavily barrel-distorted and rotated - the in-built recording suite's footage is straight and rectilinear in nature. However, It is unknown if this is either:
+
+- The raw footage _before_ it gets barrel-distorted, cropped, and rotated before being projected as the user's display, or
+- This is a re-corrected version _after_ the raw render buffer is distorted/modified for display. 
+
+For now, let us assume that this `1920` x `1080` footage is the "master" reference for all footage that is recorded. Our initial assumptions of the render pipeline for Meta devices is such:
+
+```
+[Per-eye render buffers]
+        v
+[Eye selection + distortion correction]
+        v
+[Crop + normalize to 16:9]
+        v
+1920×1080 (canonical stream)
+        v
+┌───────────────┬───────────────┬───────────────┐
+│ Quest record  │ Android cast  │ iOS cast      │
+│ 1920×1080     │ up/downscale  │ 1280×720      │
+└───────────────┴───────────────┴───────────────┘
+```
+
+This initial understanding faces scrutiny due to the computationally heavy task of having to undo the distortion, cropping, and rotation conducted earlier in this pipeline. Furthermore, in order for the output stream and video from Meta's 
