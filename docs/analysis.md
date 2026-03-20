@@ -286,6 +286,7 @@ Display         Hardware encoder
                 File (recording) / Network stream (casting)
 ```
 
+This process is likely to be more hardware intensive on the Meta Quest devices but explains the disparity between "scrcpy" recordings and official recordings/castings.
 
 
 <h5 id="3bii-rationale-2-downsampling-from-a-master-signal">3bii. Rationale #2: Downsampling From a "Master" Signal</h5>
