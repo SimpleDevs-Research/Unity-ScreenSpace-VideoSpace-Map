@@ -1,3 +1,6 @@
+import re
+import base64
+from pathlib import Path
 import os
 import shutil
 import numpy as np
@@ -166,3 +169,65 @@ def derive_fourcc_codec(cap, verbose:bool=True):
         if verbose: print("Invalid codec detected, using mp4v instead")
         codec = "mp4v"
     return codec, fourcc_to_ext[codec]
+
+
+
+
+# === Given a markdown file, transcripe it into Streamlit-compatible text
+_DOC_TO_PAGE = {
+    "docs/analysis.md": "Analysis_And_Results",
+    "docs/methodology.md": "Methodology",
+    "methodology.md": "Methodology",
+    "docs/python.md": "Python",
+    "python.md": "Python",
+    "docs/templates_and_datasets.md": "About_Templates_And_Datasets",
+    "templates_and_datasets.md": "About_Templates_And_Datasets",
+}
+def read_md_file(
+        path:str, 
+        separate_lines:bool=False,
+        extract_header:bool=True
+):
+    # Pathlib version of the source path
+    md_path = Path(path)
+    # Read contents
+    contents = open(path, 'r').read()
+
+    """Helper function: Resolve pathing issues with urls"""
+    def resolve_path(rel_path):
+        # Skip external URLs
+        if rel_path.startswith(("http://", "https://", "data:")):
+            return rel_path
+        # Resolve relative to markdown file
+        abs_path = (md_path.parent / rel_path).resolve()
+        if abs_path.exists():
+            ext = abs_path.suffix.lower().replace(".", "")
+            b64 = base64.b64encode(abs_path.read_bytes()).decode()
+            return f"data:image/{ext};base64,{b64}"
+        return rel_path
+
+    # Fix HTML <img src="...">
+    contents = re.sub( r'src=[\'"](.*?)[\'"]', lambda m: f'src="{resolve_path(m.group(1))}"', contents )
+    # Fix Markdown images ![](…)
+    contents = re.sub( r'!\[.*?\]\((.*?)\)', lambda m: m.group(0).replace(m.group(1), resolve_path(m.group(1))), contents )
+
+    """Helper function: replace markdown urls to local pages with those from streamlit"""
+    def replace_link(match):
+        label, target = match.groups()
+        target = target.lstrip("./")
+        if target in _DOC_TO_PAGE:
+            page = _DOC_TO_PAGE[target]
+            return f"[{label}]({page})"
+        return match.group(0)
+
+    # Replace any markdown urls
+    contents = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", replace_link, contents)
+
+    # Split the text based on newlines
+    lines = contents.split("\n")
+
+    # Return the appropriate version of the content
+    if extract_header:
+        header = lines[0].removeprefix("# ")
+        return (header, "\n".join(lines[1:])) if not separate_lines else (header, lines[1:])
+    return contents if not separate_lines else lines

@@ -61,14 +61,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Re-scale an existing calibration `.json` to match a different resolution.")
     parser.add_argument("calibration_filepath", help="Filepath to the calibration file to be re-scaled.", type=str)
     parser.add_argument('new_dims', help='The new dimensions (in pixels) to be scaled to. Requires two integer values', nargs=2, type=int)
-    parser.add_argument('name', help="The name of the new calibration session. The new calibration will be saved with this as its filename (excluding extension).", type=str)
-    parser.add_argument('-v', '--verbose', help="Should we output print statements?", action="store_true")
+    parser.add_argument('new_filename', help="The name of the new calibration session. The new calibration will be saved with this as its filename (excluding extension).", type=str)
+    parser.add_argument('--verbose', help="Should we output print statements?", action="store_true")
     args = parser.parse_args()
 
     rescale_transform(
         args.calibration_filepath,
         args.new_dims,
-        args.name,
+        args.new_filename,
         verbose=args.verbose
     )
 

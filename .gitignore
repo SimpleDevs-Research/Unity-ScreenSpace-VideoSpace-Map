@@ -59,14 +59,20 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+# VS Code and VSCodium
+**/.vscode
+
 # Python-Specific
-Processing/captures/*
-Processing/sample/*
-Processing/samples/*
-Processing/templates/*
-Processing/.venv*
+src/captures/*
+src/analysis/*
+src/sample/*
+src/samples/*
+src/templates/*
+.venv
 **/__pycache__
 
 # Mac-Specific
 **/.DS_Store
+
+# Manual Ignores
 **/*_ignore

@@ -3,3 +3,4 @@ easyocr
 pandas
 matplotlib
 opencv-python
+streamlit

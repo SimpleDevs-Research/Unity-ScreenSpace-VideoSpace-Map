@@ -1,76 +1,4 @@
-# Screen-Video-Map: Processing
-
-## Installation
-
-1. Create and run a new python environment
-    ```bash
-    python -m venv .venv
-
-    source .venv/bin/activate
-    .venv/Scripts/activate
-    ```
-2. Install all packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## How to Run:
-
-### Calibrating between Video and Calibration Targets:
-
-```bash
-python calibrate.py [-h] [-sb START_BUFFER] [-vf VIDEO_FILENAME] [-tf TARGETS_FILENAME] root_dir name
-```
-
-```
-positional arguments:
-  root_dir              Relative directory to your calibration trial
-  name                  Calibration name
-
-options:
-  -h, --help            show this help message and exit
-  -sb START_BUFFER, --start_buffer START_BUFFER
-                        Buffer time (in seconds) from the video start where we should start processing the video
-  -vf VIDEO_FILENAME, --video_filename VIDEO_FILENAME
-                        Fileame of the video file, including extension, relative to the calibration trial dir
-  -tf TARGETS_FILENAME, --targets_filename TARGETS_FILENAME
-                        Filename of the targets csv file, including extension, relative to the calibration trial dir
-```
-
-### After Calibration, Estimate Given a Raw Set of Screen Positions
-
-```bash
-python estimate.py [-h] [-fc FRAME_COLNAME] [-xc X_COLNAME] [-yc Y_COLNAME] [-nxc NEW_X_COLNAME] [-nyc NEW_Y_COLNAME] [-od OUTPUT_DIRNAME] [-vp VIDEO_FILEPATH] [-sb START_BUFFER] [-p] [--verbose] calibration_filepath positions_filepath
-```
-
-```
-positional arguments:
-  calibration_filepath  Path to either the Transformer or Calibration `.json` file
-  positions_filepath    Path to the the positions `.csv` file
-
-options:
-  -h, --help            show this help message and exit
-  -fc FRAME_COLNAME, --frame_colname FRAME_COLNAME
-                        The column name in your positions file corresponding to the frame number
-  -xc X_COLNAME, --x_colname X_COLNAME
-                        The column name in your positions file corresponding to the X coordinate in screen space
-  -yc Y_COLNAME, --y_colname Y_COLNAME
-                        The column name in your positions file corresponding to the Y coordinate in screen space
-  -nxc NEW_X_COLNAME, --new_x_colname NEW_X_COLNAME
-                        The NEW column name of the re-calibrated x-coord. If an empty string, it will default to `x_colname`
-  -nyc NEW_Y_COLNAME, --new_y_colname NEW_Y_COLNAME
-                        The NEW column name of the re-calibrated y-coord. If an empty string, it will default to `y_colname`
-  -od OUTPUT_DIRNAME, --output_dirname OUTPUT_DIRNAME
-                        Output directory relative to directory of either the positions filepath or video filepath; a new folder will be generated in the same location as your position/video file
-  -vp VIDEO_FILEPATH, --video_filepath VIDEO_FILEPATH
-                        Filepath to the video file you want to label. If left empty, then it will not produce a video.
-  -sb START_BUFFER, --start_buffer START_BUFFER
-                        Buffer time (in seconds) from the video start where we should start processing the video
-  -p, --preview         If set, will preview transformations live
-  --verbose             When generating videos, do we output messages to the log about progress?
-```
-
-## General Observations
+## Observations Regarding Meta OS' Render Pipelines for Recording and Casting
 
 ### Recording Resolutions and Device Compatibility
 
@@ -257,3 +185,47 @@ Display         Hardware encoder
 ```
 
 The problem is that everything is _closed-source_... we do not have any guarantees that this is actually what goes on.
+
+
+
+
+### Analysis Methodology
+
+We derived that the simplest way to derive the differences across the various conditions is to measure the differences in the estimated transformation matrices in of themselves. In an ideal situation where two conditions are identical, their transformation matrices should be similar, if not identical. Thus, measuring differences in their transformation matrices is suitable. We quantify that difference through two methods: 1) pair-wise Frobenius Distance of transformation matrices between each possible pair of conditions, and 2) the Squared Frobenius Distance of transformation matrices across each possible pair of conditions.
+
+Let $\{A_1, A_2, \ldots, A_n\}$ be the set of transformation matrices, where each $A_i \in \mathbb{R}^{m \times k}.$  We define the Frobenius Distance matrix $D \in \mathbb{R}^{n \times n}$ as:
+
+$$
+D_{ij} = \| A_i - A_j \|_F = \sqrt{\sum_{p=1}^{m} \sum_{q=1}^{k} (A_{i,pq} - A_{j,pq})^2 }
+$$
+
+Alternatively, we define the Squared Frobenius Distance matrix as:
+
+$$
+D_{ij} = \| A_i - A_j \|_F^2 = \sum_{p=1}^{m} \sum_{q=1}^{k} (A_{i,pq} - A_{j,pq})^2
+$$
+
+
+There are, naturally, some issues with this approach. Firstly, we need to contend with the reality that any operations that involve float-point precision such as `numpy.linalg.lstsq` may suffer very miniscule imprecisions that coalesce over time. Furthermore, there may always be the potential of ill-ranked matrices, null values, etc. We are fortunate that we need a relatively simple solution given that we are only measuring 2D coordinates. Finally, we recognize that the Frobenius Distance operation simplifies the comparison down to 1D values as opposed to a fuller analysis with 2D semantic structures. Nonetheless, we still believe there is value in utilizing the Frobenius Distance and Squared Frobenius Distance as rough measurements of differences between transformation matrices.
+
+### Distance Heatmaps (clustered across features)
+
+To best represent the pair-wise analysis, we've generated three diferent heatmaps depicting the differences. Darker colors correlate to smaller differences, while lighter colors represent greater differences. The naming structure of each column and row defines `<IPD>-<DYN. RES>-<DEVICE>`.
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap: 1rem;align-items: start;">
+<div><img src="./docs/ipd.png" /></div>
+<div><img src="./docs/resolution.png" /></div>
+<div><img src="./docs/device.png" /></div>
+</div>
+
+In summary, we can argue the following:
+
+- Changing between dynamic resolution does NOT affect recording, so no need for a new transformation matrix
+- Changing the IPD produces a minor change in transformation matrix, so a re-calculation is needed. However, in a punch, it may be okay to use the same transforamtion matrix.
+- Switching recording devices DOES require a different transformation matrix
+
+## Conclusion
+
+It is relatively safe to utilize Dynamic Resolution in Unity. However, changes in IPD and device recording methodology entail different calibrations. Due to the inherent variability in users' IPDs, it might be ideal to pre-compute the IPD of each possible IPD value across different headsets and utilize them when necessary. In a pinch one may be able to use a different calibration setting if the IDPs are relatively similar to one another, but it is not the ideal situation.
+
+We generally recommend that you calibrate based on left screen positioning, for both the calibration and for estimation.

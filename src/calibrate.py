@@ -27,13 +27,13 @@ warnings.filterwarnings(
 def calibrate(  
     root_dir:str, 
     calibration_name:str,
-    start_buffer_ms:int,
-    anchor_filepath:str,
-    video_filename:str, 
-    targets_filename:str,
-    vr_x_colname:str="left_screen_pos_x",
-    vr_y_colname:str="left_screen_pos_y",
-    video_time_threshold:float=35,
+    anchor_filepath:str='./src/anchor.png',
+    video_filename:str="calibration.mp4", 
+    targets_filename:str="calibration.csv",
+    x_colname:str="left_screen_pos_x",
+    y_colname:str="left_screen_pos_y",
+    start_buffer_ms:int=0,
+    duration_ms:int=35000,
     validate:bool=True,
     verbose:bool=True
 ):    
@@ -69,7 +69,7 @@ def calibrate(
     assert cap.isOpened(), f"Could not open video '{video_filename}'"   # Ensure that opencv actually can open the video
     cap.set(cv2.CAP_PROP_POS_MSEC, calibration.start_buffer_ms)               # Ignore S amount of milliseconds from the start    
     fps = cap.get(cv2.CAP_PROP_FPS)                                     # Get the FPS of the video.
-    frame_limit = int(video_time_threshold * fps)                       # 45 seconds → frame index
+    frame_limit = int((duration_ms/1000.0) * fps)                       # 45 seconds → frame index
     frame_width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))               # Get resolution width
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))              # Get resolution height
     # We initialize an interface to let the user define the region of the video to read the frame count of.
@@ -94,7 +94,7 @@ def calibrate(
         if is_int and int(vr_frame_number) > target_frame_keys[target_number_index]:
             # Confirm which target frame is associated with 
             row = target_frames[target_frame_keys[target_number_index]]
-            vr_coords = (row[vr_x_colname], row[vr_y_colname])  # Get screen position in VR
+            vr_coords = (row[x_colname], row[y_colname])  # Get screen position in VR
             frame = CFrame(row['target_number'], vr_coords=vr_coords)   # Create frame, cache it
             frame.set_frame(_frame)
             frames.append(frame)
@@ -157,19 +157,65 @@ def calibrate(
     return
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('root_dir', help="Relative directory to your calibration trial", type=str)
-    parser.add_argument('name', help="Calibration name", type=str)
-    parser.add_argument('-sb', '--start_buffer', help="Buffer time (in seconds) from the video start where we should start processing the video [Default = 0]", type=float, default=0.0)
-    parser.add_argument('-vf', '--video_filename', help="Fileame of the video file, including extension, relative to the calibration trial dir [Default = 'calibration.mp4']", type=str, default="calibration.mp4")
-    parser.add_argument('-tf', '--targets_filename', help="Filename of the targets csv file, including extension, relative to the calibration trial dir [Default = 'calibration.csv']", type=str, default="calibration.csv")
+    parser = argparse.ArgumentParser(description=" Provided a video sequence with calibration targets and a table of known calibration targets within VR screen space, this script calculates the transformation matrix from screen to video space.")
+    # Required inputs
+    parser.add_argument("root_dir", 
+                            help="Relative directory to your calibration trial", 
+                            type=str )
+    parser.add_argument("calibration_name", 
+                            help="Calibration name, which will be used as the filename of the outputted calibration file", 
+                            type=str )
+    # Optional Parameters
+    parser.add_argument("-ap", "--anchor_filepath", 
+                            help="Path to a reference image for the calibration targets used in the Unity scene. [Default='./src/anchor.png']", 
+                            type=str, 
+                            default="./src/anchor.png" )
+    parser.add_argument("-vf", "--video_filename", 
+                            help="Fileame of the video file, including extension, relative to the calibration trial dir [Default = 'calibration.mp4']", 
+                            type=str, 
+                            default="calibration.mp4" )
+    parser.add_argument("-tf", "--targets_filename", 
+                            help="Filename of the targets csv file, including extension, relative to the calibration trial dir [Default = 'calibration.csv']", 
+                            type=str, 
+                            default="calibration.csv" )
+    parser.add_argument("-xc", "--x_colname", 
+                            help="The column name in target file corresponding to the x-coordinate of each target's screen position. [Default='left_screen_pos_x']", 
+                            type=str, 
+                            default="left_screen_pos_x" )
+    parser.add_argument("-yc", "--y_colname", 
+                            help="The column name in target file corresponding to the y-coordinate of each target's screen position. [Default='left_screen_pos_y']", 
+                            type=str, 
+                            default="left_screen_pos_y" )
+    parser.add_argument("-sb", "--start_buffer", 
+                            help="Buffer time (in seconds) from the video start where we should start processing the video [Default = 0]", 
+                            type=float, 
+                            default=0.0)
+    parser.add_argument("--duration",
+                            help="In seconds, how long from the start defined by 'start_buffer' should we consider the calibration session to be? [Default=35.0]",
+                            type=float,
+                            default=35.0 )
+    parser.add_argument("--validate",
+                            help="Should we validate the transformation matrix's accuracy?",
+                            action="store_true" )
+    parser.add_argument("--verbose",
+                            help="Print out messages to indicate progress.",
+                            action="store_true" )
+    
+    # Argument parsing
     args = parser.parse_args()
+
+    # Invoke function
     calibrate(
         args.root_dir,
-        args.name,
-        int(args.start_buffer * 1000),
-        './anchor.png',
-        args.video_filename,
-        args.targets_filename,
-        verbose=False
+        args.calibration_name,
+        anchor_filepath = args.anchor_filepath,
+        video_filename = args.video_filename,
+        targets_filename = args.targets_filename,
+        x_colname = args.x_colname,
+        y_colname = args.y_colname,
+        start_buffer_ms = int(args.start_buffer * 1000),
+        duration_ms = int(args.duration * 1000),
+        validate = args.validate,
+        verbose = args.verbose
     )
+    
