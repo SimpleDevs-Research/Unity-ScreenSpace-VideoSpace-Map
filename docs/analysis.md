@@ -207,3 +207,4 @@ One potential reason for these differences across OS types may be **platform-dri
 <h5 id="3bii-rationale-2-downsampling-from-a-master-signal">3bii. Rationale #2: Downsampling From a "Master" Signal</h5>
 
 The Meta Quest Pro has a per-eye resolution of `1800` x `1920`. In fact, if you use an application like [scrcpy](https://github.com/genymobile/scrcpy) to capture the raw footage from the Android foundation that the Meta Quest systems are built on top of, you'll notice that the raw footage is actually projected and distorted to conform better to lens ergonomics. What the user sees in the display is the result of a projected display, in other words; there's a lot going on under the hood.
+
