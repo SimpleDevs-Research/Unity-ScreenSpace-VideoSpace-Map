@@ -12,10 +12,10 @@
 3. [Exploration #2: Observations of Recording Pipelines](#3-exploration-2-observations-of-recording-pipelines)
     1. [Recording Resolutions and Device Compatibility](#3a-recording-resolutions-and-device-compatibility)
     2. [Exploring Meta Quest's Render Pipeline](#3b-exploring-meta-quests-render-pipeline) 
-        1. [Render Pipelines for Eye Displays](#3bi-render-pipelines-for-eye-displays)
+        1. ["scrcpy" and Per-Eye Displays](#3bi-scrcpy-and-per-eye-displays)
         2. [Non-Invertibility of Image Transformations](#3bii-non-invertibility-of-image-transformations)
-        3. [Separate Render Pipelines]()
-
+        3. [Unity and Meta Render Pipelines](#3biii-unity-and-meta-render-pipelines)
+4. [Conclusion](#4-conclusion)
 
 ---
 
@@ -32,12 +32,17 @@ This project therefore aims to shed light on this obscure but crucial function p
 - Meta devices cannot simultaneously **screencast** and **record video**. 
     - To initialize recording, you must record from the device viewing the screencast.
     - Mobile devices (iPhones, Androids) are optimal for recording, as the _Meta Horizon App_ ([iOS](https://apps.apple.com/us/app/meta-horizon/id1366478176), [Android](https://play.google.com/store/apps/details?id=com.oculus.twilight&hl=en_US)) comes with in-house recording functions in the app itself.
-    - Meta's screen-casting function casts the screen from the **left eye**.
+    - The user is allowed to adjust various settings of the casting behavior, from which eye perspective the footage is captured from to the bitrate and aspect ratio of outputted footage. By default, Meta's screen-casting function casts the screen from the **left eye**.
+    - Software updates to either Meta HMDs or Meta Horizon apps may **adjust the behavior of casting and recording**. This was observed when earlier trials and recordings differed from more recent recordings, with the casting and recording camera frustrum lower vertically than originally observed.
 - A mapping operation from VR screen space to video space is possible, but has caveats.
     - Recordings do not differ based on the **dynamic resolution** setting in Unity. 
     - Adjusting the **IPD** produces slightly different recorddings, but the same mapping function is technically interchangeable if in a pinch.
     - **Device type** (e.g. Mac, Windows, iPhone, Android) are the most distinct causes of differences between recordings. Mapping operations MUST be re-calculated depending on recording device type.
     - Video recordings **do not necessarily align with frames from VR**. A different methodology is needed to connect video frames with Unity frames.
+- The Unity-Meta Render Pipeline, based on existing documentation on the topic, implicates that recording and casting footage of VR events is conducted **after compositor operations such as Timewarp and Application Spacewarp (ASW)**.
+    - Footage captured via "scrcpy" is likely extracted at the tail end of compositor operations, prior to the footage being displayed to the user.
+    - Recording and casting footage is likely captured after compositor operations but prior to applying distortions.
+        - There is a small chance that such footage may be extracted from the raw per-eye texture buffers transmitted from Unity to Meta OS, prior to compositor operations.
 
 ---
 
@@ -211,7 +216,7 @@ One potential reason for these differences across OS types may be **platform-dri
 
 The Meta Quest Pro has a reported per-eye resolution of `1800` x `1920`. Yet, if one were to record a VR scene or take a screenshot using Meta's in-built Camera feature, then the resulting resolution is something closer to rectilinear `1920` x `1080`. Extrapolate that further to Meta Horizons-based recording (i.e. Android, iPhone, iPad), and your resolutions differ even further while still remaining rectilinear. Finally, upon using an application like [scrcpy](https://github.com/genymobile/scrcpy), the resulting footage returns to a `1800` x `1920` with heavy barrel distortion, cropping, and rotating. These differences produce an interesting quandry: how exactly are the Meta Quest systems handling display rendering per eye, casting, and recording simultaneously? 
 
-<h5 id="3bi-render-pipelines-for-eye-displays">3bi. Render Pipelines for Eye Displays</h5>
+<h5 id="3bi-scrcpy-and-per-eye-displays">3bi. "scrcpy" and Per-Eye Displays</h5>
 
 <figure style="width:50%;max-width:500px;margin-left:auto;margin-right:auto;">
 <img style="width:100%;" src="../assets/checkerboard/scrcpy_full.png" alt="A black background video with two circles showing the same contents. Each circle depicts a 9-point arrangement of red squares alongside a checkerboard background. The two circles are distorted and rotated differently." />
@@ -240,80 +245,57 @@ To showcase this example, please observe the following examples, which are proce
 
 The final output of this operation shows a distinct loss of information around the edges and a few distortion artifacts still present. Furthermore, the image is offset by a few pixels. This is but a mere example of a likely scenario one may encounter in practice: that some form of information loss must be accounted for when performing image transformations. This is not to say that it is completely _impossible_ for this distortion operation to be inversible. However, given that the "scrcpy" footage is already distorted, the likelihood of the existence of a invert operation to return the image back to rectilinearity without visual artifacts is very low. A stronger assumption to therefore make is that rectilinear recordings from either casting or in-built recording occurs somewhere **prior** to any kind of distortion transformation. 
 
-<h5 id="3biii-separate-render-pipelines">3biii. Separate Render Pipelines</h5>
+<h5 id="3biii-unity-and-meta-render-pipelines">3biii. Unity and Meta Render Pipelines</h5>
 
-The second natural thought is to assume that rectilinear videos and data streams are being extracted from some render buffer that exists between the simulation layer and transformation layers. This is indeed possible, though it would only work with certain assumptions in place. We will cover those assumptions in time; for now, observe the theoretical render pipeline that we've derived thus far:
+The figure below depicts the best approximation of the render pipeline connecting Unity applications to Meta Quest display outputs. This flowchart is derived from the following documentation and resources:
 
-```
-App (Unity / Unreal / native VR)
-        ↓
-Per-eye render buffer (undistorted, rectilinear)   ← Recording & Casting
-        ↓
-Per-eye render buffer (distorted, wide FOV)
-        ↓
-VR compositor (timewarp, reprojection)
-        ↓
-System surface / display buffer         ← "scrcpy"
-        ↓
-Lens distortion (hardware/display pipeline)
-        ↓
-display to the user's eyes
-```
+- ["XR architecture"](https://docs.unity3d.com/6000.3/Documentation/Manual/XRPluginArchitecture.html) - Unity Technologies
+- ["About the Oculus XR Plugin"](https://docs.unity3d.com/Packages/com.unity.xr.oculus@4.5/manual/com.unity.xr.oculus.html) - Unity Technologies
+- ["Use VR Compositor Layers"](https://developers.meta.com/horizon/documentation/unity/unity-ovroverlay/) - Unity Technologies
+- ["The compositor"](https://developers.meta.com/horizon/documentation/unity/os-compositor/) - Meta
+- ["Compositor Layers"](https://developers.meta.com/horizon/documentation/unity/os-compositor-layers) - Meta
+- ["App Spacewarp"](https://developers.meta.com/horizon/documentation/unity/os-app-spacewarp/) - Meta
+- ["Unity-CompositorLayers"](https://github.com/oculus-samples/Unity-CompositorLayers) - Meta, Github
+- ["Application SpaceWarp Can Give Quest Apps 70% More Performance"](https://www.immersivelearning.news/2021/11/09/application-spacewarp-can-give-quest-apps-70-more-performance/) - Immersive Learning News
 
-This potential framework relies on several core assumptions:
+<figure style="width:90%;margin-left:auto;margin-right:auto;">
+<img style="width:100%;" src="../assets/unity-meta-render-pipeline.png" alt="A flowchart with multiple boxes representing core components of a render pipeline. Arrows connect the boxes to indicate permissions, access, or flow of data. The left part of the figure covers Unity's internal render pipeline and its components, while the right side covers Meta's render pipeline within its OS." />
+<figcaption>The approximated render pipeline, from Unity application to Meta GPU and Compositor to Display. Unity's applications are granted access to various affordances of HMDs due to APIs provided by XR subsystems such as the Unity XR SDK and Oculus XR Plugin. At the end, Unity will output two separate buffer data - one for each eye - that are un-distorted. From there, Meta will perform various post-processing layers onto the render textures it receives from Unity, such as Late Latching, Timewarp, and Application Spacewarp. Finally, each eye frame is distorted to conform to lens distortions built into the eye displays on the Meta HMD hardware. All or most post-processing is estimated to occur via the Compositor layer of this pipeline.</figcaption>
+</figure>
 
-1. Only a single render pipeline is actively in use.
-2. The application being run doesm't already populate the per-eye render targets with distorted frames calculated on the application side.
-3. Per-eye render target buffers enforce an aspect ratio and/or resolution that is greater than `1920` x `1080`; this is to account for the fact that each distorted eye render is already at an `1800` x `1920` resolution; to account for information loss as a result of frame transformations, each eye render must have a resolution of at least `1920` x `1920` with cropping to reduce both the recording/casting to a smaller resolution. 
+This pipeline gives us some key insights as to how Meta may be recording videos and streaming in-app footage via casting. Namely:
 
-A third alternative idea is that rather than rely on a single render process, the Meta Quest systems rely on multiple render pipelines, each with their specific purposes. Observe this alternative depiction of the render process:
+- It is _very strongly assumed_ that the footage "scrcpy" is picking up is the barrel-distorted, rotated, and cropped eye frames at the tail end of the render pipeline, right before they are displayed to the user.
+- Recordings and casting streams are _strongly assumed_ to be placed right after Late-Latching, Timewarp, and ASW but prior to distortion. This would make sense as the compositor must also perform composite layering to align all textures and buffer data into two singular eye frames. In other words, what the recordings and casting streams depict are the output of the compositor prior to distortion. This can be validated by the fact that **recordings and castings depict UI elements from the Meta Home interface, which do not rely on Unity at all**.
 
-```
-[Game / XR App]
-        ↓
-   Scene graph
-        ↓
- ┌───────────────┬────────────────────┐
- ↓               ↓                    ↓
-VR Eye Views   Capture View       (optional variants)
-(distorted)    (rectilinear)      (1:1, 16:9, cinematic)
+Though it is _very unlikely_, we cannot discount the possibility that the footage recorded or casted is in fact the output of an inverse distortion operation conducted after the final distortion step of the compositor. We emphatically make the case that this is highly unlikely unless certain assumptions are maintained:
 
- ↓               ↓
-Compositor      GPU buffer
- ↓               ↓
-Display         Hardware encoder
-(scrcpy sees)    ↓
-                File (recording) / Network stream (casting)
-```
+- Per-eye buffers, depth buffers, and motion vectors are higher in resolution than initially expected, to account for loss of pixel information caused by distortion, rotation, and cropping.
+- Meta has access to a near-perfect inverse distortion transformation that enforces rectilinearity without any visual artifacting.
 
-This process is likely to be more hardware intensive on the Meta Quest devices but explains the disparity between "scrcpy" recordings and official recordings/castings.
+Another _very unlikely_ possibility is that the recorded and casted footage is captured from the raw per-eye buffer data transmitted from Unity to the Meta OS, prior to any compositor operations.  We consider this operation to be highly unlikely as the introduction of Application Spacewarp means that Unity is only providing render textures at **half the required framerate**; the ASW operation generates _synthetic_ frames based on an existing frame, its associated depth buffer, and its Unity-calculated motion vectors. The ASW is effecitvely an optimization technique to let Unity reduce computational overhead by only providing half the required frames. Though ASW is an _optional_ post-processing technique, this nonetheless implies that recordings and castings are receiving only half of the expected frames. Unfortunately, this is rather hard to verify in certainty - outputted recordings from either the Meta Quest's in-built Camera or Meta Horizon casting enforce a strict 30fps.
 
+---
 
-<h5 id="3bii-rationale-2-downsampling-from-a-master-signal">3bii. Rationale #2: Downsampling From a "Master" Signal</h5>
+<h2 id="4-conclusion">4. Conclusion</h2>
 
+Our analysis here explores two core topics: 1) the effects of hardware and software on recording generalizability, and 2) the estimated render pipeline from Unity to Meta OS. Of these two explorations, the first is more empirically driven with visual analysis derived from heatmaps and statistical significant enforced by permutation modeling. The latter exploration consequently is more exploratory and makes certain assumptions about the operations of the Meta hardware.
 
+Our results and discussion lead into the following findings that have strong implications for the quality of VR-based human behavior and computer vision analysis in the future:
 
+- A mapping operation from VR screen space to video space is possible, but has caveats.
+    - Recordings do not differ based on the **dynamic resolution** setting in Unity. 
+    - Adjusting the **IPD** produces slightly different recorddings, but the same mapping function is technically interchangeable if in a pinch.
+    - **Device type** (e.g. Mac, Windows, iPhone, Android) are the most distinct causes of differences between recordings. Mapping operations MUST be re-calculated depending on recording device type.
+    - Video recordings **do not necessarily align with frames from VR**. A different methodology is needed to connect video frames with Unity frames.
+- The Unity-Meta Render Pipeline, based on existing documentation on the topic, implicates that recording and casting footage of VR events is conducted **after compositor operations such as Timewarp and Application Spacewarp (ASW)**.
+    - Footage captured via "scrcpy" is likely extracted at the tail end of compositor operations, prior to the footage being displayed to the user.
+    - Recording and casting footage is likely captured after compositor operations but prior to applying distortions.
+        - There is a small chance that such footage may be extracted from the raw per-eye texture buffers transmitted from Unity to Meta OS, prior to compositor operations.
 
-The recorded footage captured directly from the in-built recording suite on the Meta Quest devices outputs at `1920` x `1080`. Unlike the footage captured from `scrcpy` - which is heavily barrel-distorted and rotated - the in-built recording suite's footage is straight and rectilinear in nature. However, It is unknown if this is either:
+There are several key insights gained from general usage of the HMD and its recording/casting functions.
 
-- The raw footage _before_ it gets barrel-distorted, cropped, and rotated before being projected as the user's display, or
-- This is a re-corrected version _after_ the raw render buffer is distorted/modified for display. 
-
-For now, let us assume that this `1920` x `1080` footage is the "master" reference for all footage that is recorded. Our initial assumptions of the render pipeline for Meta devices is such:
-
-```
-[Per-eye render buffers]
-        v
-[Eye selection + distortion correction]
-        v
-[Crop + normalize to 16:9]
-        v
-1920×1080 (canonical stream)
-        v
-┌───────────────┬───────────────┬───────────────┐
-│ Quest record  │ Android cast  │ iOS cast      │
-│ 1920×1080     │ up/downscale  │ 1280×720      │
-└───────────────┴───────────────┴───────────────┘
-```
-
-This initial understanding faces scrutiny due to the computationally heavy task of having to undo the distortion, cropping, and rotation conducted earlier in this pipeline. Furthermore, in order for the output stream and video from Meta's 
+- Meta devices cannot simultaneously **screencast** and **record video**. To initialize recording, you must record from the device viewing the screencast.
+    - Mobile devices (iPhones, Androids) are optimal for recording, as the _Meta Horizon App_ ([iOS](https://apps.apple.com/us/app/meta-horizon/id1366478176), [Android](https://play.google.com/store/apps/details?id=com.oculus.twilight&hl=en_US)) comes with in-house recording functions in the app itself.
+- The user is allowed to adjust various settings of the casting behavior, from which eye perspective the footage is captured from to the bitrate and aspect ratio of outputted footage. By default, Meta's screen-casting function casts the screen from the **left eye**.
+- Software updates to either Meta HMDs or Meta Horizon apps may **adjust the behavior of casting and recording**. This was observed when earlier trials and recordings differed from more recent recordings, with the casting and recording camera frustrum lower vertically than originally observed.
