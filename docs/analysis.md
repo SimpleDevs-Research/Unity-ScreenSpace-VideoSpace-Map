@@ -23,7 +23,7 @@
 
 We aim to better understand the operations of the Meta Quest's [casting](https://www.meta.com/help/quest/192719842695017/) and [recording](www.meta.com/help/quest/516228089650875/?srsltid=AfmBOorVsHW-ZEcP_t_wba_-YTMYAD8uUuCizR4yN9BC4NVCAMcX4h0u) functionality. These operations are crucial for VR-based human subject experimentation for a number of reasons - namely, ensuring that participants navigate virtual tasks correctly and recording virtual events for post-experiment analysis. One powerful affordance of this function is the possibility of computer vision-based analysis of VR events (e.g. object detection and tracking, eye tracking analysis).
 
-However, due to the closed source nature of Meta's head-mounted displays (HMDs), it is difficult to guarantee that any recording operations can be generalizable to different Meta HMDs, across different recording setups. This is potentially troublesome for reproducibility and ease-of-use for researchers who rely on vision-based analysis of VR events.
+However, while Meta has [opened their Meta Quest OS to third-party hardware developers](https://about.fb.com/news/2024/04/introducing-our-open-mixed-reality-ecosystem/), access to the OS is otherwise restricted and/or non-existent at this juncture. It is therefore difficult to guarantee that any recording operations can be generalizable to different Meta HMDs, across different recording setups. This is potentially troublesome for reproducibility and ease-of-use for researchers who rely on vision-based analysis of VR events.
 
 This project therefore aims to shed light on this obscure but crucial function provided by the Meta ecosystem. Though the results and insights gained from this analysis may be generalized to different HMD devices and ecosystems (e.g. the HTC Vive series), we emphasize that a significant part of this report is isolated to idiosyncracies pertaining to the Meta ecosystem.
 
@@ -50,7 +50,7 @@ This project therefore aims to shed light on this obscure but crucial function p
 
 In this first exploration, we aim to identify differences in recording quality between different common recording setups. There are in fact multiple ways to record video of VR events, such as using Meta's in-built Camera system or using an external application such as [scrcpy](https://github.com/genymobile/scrcpy). Further, there are sveral recording (and casting) settings exposed to the user that impact the quality of these recordings (e.g. aspect ratio, the bitrate of recording/casting). In other words, differences between recording setups can be quantified by 1) differences in software settings, and 2) differences in recording methods. 
 
-These particular differences are unique to the Meta Quest ecosystem and Unity XR subsystems, the former of which is currently closed source and subject to frequent software updates. This makes it rather difficult to guarantee that the recording setups described in [our "methodology" description](methodology.md) can be transferrable between different use cases. This poses a problem for reproducibility and consistency for any research project that requires video recordings of VR events - especially those that involve computer vision-based analysis such as object detection.
+These particular differences are unique to the Meta Quest ecosystem and Unity XR subsystems, the former of which is open to select parties only and subject to frequent software updates. This makes it rather difficult to guarantee that the recording setups described in [our "methodology" description](methodology.md) can be transferrable between different use cases. This poses a problem for reproducibility and consistency for any research project that requires video recordings of VR events - especially those that involve computer vision-based analysis such as object detection.
 
 We utilize permutation-based model testing to explore a key question: **do the three factors explored here (IPD, activation of dynamic resolution, and the recording device) explain the structures and patterns in distance matrices between different recording setups better than random labeling?** This exploration is implemented via a permutation test, which affords us to assets statistical significance without assuming a specific parametric model.
 
@@ -178,7 +178,7 @@ The observed characteristic of the recording device impacting transformation mat
 
 <h2 id="3-exploration-2-observations-of-recording-pipelines">3. Exploration #2: Observations of Recording Pipelines</h2>
 
-This section is less of a rigorous academic hypothesis test, but rather a collection of observations and assumptions made of the Meta ecosystems' recording and casting operations. These observations are purely driven by the fact that Meta's operating systems on their HMDs are _closed source_.
+This section is less of a rigorous academic hypothesis test, but rather a collection of observations and assumptions made of the Meta ecosystems' recording and casting operations.
 
 <h4 id="3a-recording-resolutions-and-device-compatibility">3a. Recording Resolutions and Device Compatibility</h4>
 

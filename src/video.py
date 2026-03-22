@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import cv2
 import argparse
+import numpy as np
 
 import helpers as h
 import ocr
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 
     label_video(
         args.video_filepath,
-        args.position_filepath,
+        args.positions_filepath,
         start_buffer_ms=args.start_buffer * 1000,
         frame_colname = args.frame_colname,
         x_colname = args.x_colname,
