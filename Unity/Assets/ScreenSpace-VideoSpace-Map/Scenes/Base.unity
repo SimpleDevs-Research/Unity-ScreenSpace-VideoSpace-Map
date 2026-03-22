@@ -2225,10 +2225,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scenes:
   - {fileID: 102900000, guid: c35f66cfb94e24976b459ee665bf6896, type: 3}
-  - {fileID: 102900000, guid: b959aaf0b8e05434b94341a24385b4ec, type: 3}
   scene_names:
   - Cube
-  - BlinkCalibration
   references:
   - key: left_eye
     reference: {fileID: 1651653801}
@@ -7668,7 +7666,7 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
-  - Title: Toggle Debuc Scene
+  - Title: Toggle Debug Scene
     Button: 1
     ButtonMode: 0
     InputActionReference: {fileID: 0}
