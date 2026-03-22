@@ -11,7 +11,7 @@ All operations are subsequently performed in Python; the relevant scripts are ma
     3. [Labeling Videos with Transformed Coordinates](#2c-labeling-videos) - Annotate a session recorded separately from the calibration session.
     4. [Rescaling from one Video Space to Another](#2d-rescaling-from-one-video-space-to-another) - If needing to match from one recording setup to another.
 3. [Accessing Templates](#3-accessing-templates) - If you need access to some pre-existing templates for your own use case, look here.
-4. 
+4. [Analysis Python Notebook](#4-analysis-python-notebook) - Legacy code + pipeline for hardware generalizability analysis
 
 > For further information on the _logical operations behind the code_, please refer to [our Methodology documentation](methodology.md). This section only covers how to execute/run the relevant Python scripts.
 
@@ -272,10 +272,10 @@ Before you start downloading these templates, make sure to read [our documentati
 
 ---
 
-<h2 id="4-analysis-code">4. Analysis Code</h2>
+<h2 id="4-analysis-python-notebook">4. Analysis Python Notebook</h2>
 
 A precursor to all python scripts mentioned above, as well as the code used in our [analysis of recording operations](analysis.md), are provided in `src/analysis.ipynb`. This code is provided for full posterity and reproducibility. To run this notebook, ensure that:
 
 1. You are in a notebook-compatible environment (e.g. VS-Code or VSCodium with `ipykernel` installed, Anaconda-based environment).
 2. You have installed all requirements in `requirements.txt`.
-3. You have 
+3. YOu have `ffmpeg` installed and accessible to your Python environment.

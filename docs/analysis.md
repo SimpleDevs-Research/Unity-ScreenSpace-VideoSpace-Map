@@ -223,7 +223,7 @@ The Meta Quest Pro has a reported per-eye resolution of `1800` x `1920`. Yet, if
 <figcaption>The raw footage from "scrcpy".</figcaption>
 </figure>
 
-To explore this question, we first start with `scrcpy`'s footage capture. The raw footage actually captures two separate displays - one for each eye - and is at a full resolution of `3648` x `1920`. Each display roughly divides into `1800` x `1920`, fulfilling the technical specifications advertised by Meta. The rendered displays are distorted like this to account for corrections made by the various lenses and polarizers built into the display lenses of the Meta Qust Pro. The video below depicts the lens components and arrangements of the Meta Quest 3, a close cousin to the Meta Quest pro.
+To explore this question, we first start with `scrcpy`'s footage capture. The raw footage actually captures two separate displays - one for each eye - and is at a full resolution of `3648` x `1920`. Each display roughly divides into `1800` x `1920`, fulfilling the technical specifications advertised by Meta. The rendered displays are distorted like this to account for corrections made by the various lenses and polarizers built into the display lenses of the Meta Qust Pro. The video below depicts the lens components and arrangements of the Meta Quest 3, which came out approximately 1 year after the Meta Quest Pro.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/6DnZqEMbfBc?si=erPsvjniTUPVsTtq" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
